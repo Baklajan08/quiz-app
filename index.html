@@ -1,51 +1,55 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="uk">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Вікторина</title>
-  <link rel="stylesheet" href="css/style.css">
-</head>
-<body>
-  <header>
-    <h1>Вікторина</h1>
-    <nav>
-      <a href="#question">Питання</a>
-      <a href="#history">Результати</a>
-    </nav>
-  </header>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Вікторина</title>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Вікторина</h1>
+      <nav>
+        <a href="#question">Питання</a>
+        <a href="#history">Результати</a>
+      </nav>
+    </header>
 
-  <main>
-    <section id="question">
-      <h2>Поточне питання</h2>
-      <div class="question-card">
-        <p class="question-text">Яка мова розмітки використовується для структури вебсторінок?</p>
-        <button class="answer-btn">HTML</button>
-        <button class="answer-btn">CSS</button>
-        <button class="answer-btn">Python</button>
-        <button class="answer-btn">SQL</button>
-      </div>
-    </section>
+    <main>
+      <section id="question">
+        <h2>Поточне питання</h2>
+        <div class="question-card">
+          <p class="question-text">
+            Яка мова розмітки використовується для структури вебсторінок?
+          </p>
+          <div class="answers-grid">
+            <button class="answer-btn">HTML</button>
+            <button class="answer-btn">CSS</button>
+            <button class="answer-btn">Python</button>
+            <button class="answer-btn">SQL</button>
+          </div>
+        </div>
+      </section>
 
-    <section id="history">
-      <h2>Історія спроб</h2>
+      <section id="history">
+        <h2>Історія спроб</h2>
+        <div class="cards">
+          <article class="history-card">
+            <h3>02.09.2026 — 7/10</h3>
+            <p>Результат попередньої спроби проходження вікторини.</p>
+          </article>
+          <article class="history-card">
+            <h3>01.09.2026 — 5/10</h3>
+            <p>Результат попередньої спроби проходження вікторини.</p>
+          </article>
+        </div>
+      </section>
+    </main>
 
-      <article class="history-card">
-        <h3>02.09.2026 — 7/10</h3>
-        <p>Результат попередньої спроби проходження вікторини.</p>
-      </article>
+    <footer>
+      <p>Навчальний проєкт. Автор: Данило Клещар. &copy; 2026</p>
+    </footer>
 
-      <article class="history-card">
-        <h3>01.09.2026 — 5/10</h3>
-        <p>Результат попередньої спроби проходження вікторини.</p>
-      </article>
-    </section>
-  </main>
-
-  <footer>
-    <p>Навчальний проєкт. Автор: Данило Клещар. &copy; 2026</p>
-  </footer>
-
-  <script src="js/app.js"></script>
-</body>
+    <script src="js/app.js"></script>
+  </body>
 </html>

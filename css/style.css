@@ -1,4 +1,6 @@
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
@@ -100,4 +102,78 @@ footer {
   padding: 16px;
   font-size: 0.85rem;
   color: #777;
+}
+
+header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+header nav {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+header nav a {
+  margin-right: 0; /* замінили margin на gap контейнера */
+}
+
+/* Крок 3: базові (мобільні) стилі для сіток */
+.answers-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.answer-btn {
+  margin-bottom: 0; /* тепер відступи дає gap grid-контейнера */
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.history-card {
+  margin-bottom: 0; /* замінили margin на gap контейнера */
+}
+
+/* Крок 7: обмеження ширини зображень (на майбутнє, якщо додаси img) */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Крок 5: планшет (мінімум 600px) */
+@media (min-width: 600px) {
+  header {
+    flex-direction: row;
+    justify-content: space-between;
+  }
+
+  .answers-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Крок 6: десктоп (мінімум 1024px) */
+@media (min-width: 1024px) {
+  .question-card {
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  .cards {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
