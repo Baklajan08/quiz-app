@@ -4,6 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Вікторина</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="css/style.css" />
   </head>
   <body>
@@ -19,14 +25,39 @@
       <section id="question">
         <h2>Поточне питання</h2>
         <div class="question-card">
+          <p class="question-counter">
+            <span class="question-counter__label">Питання</span>
+            <span class="question-counter__current">3</span>
+            <span class="question-counter__total">з 10</span>
+          </p>
+          <progress
+            class="progress-bar"
+            value="3"
+            max="10"
+            aria-label="Прогрес проходження вікторини"
+          >
+            3 з 10
+          </progress>
+
           <p class="question-text">
             Яка мова розмітки використовується для структури вебсторінок?
           </p>
+
           <div class="answers-grid">
-            <button class="answer-btn">HTML</button>
-            <button class="answer-btn">CSS</button>
-            <button class="answer-btn">Python</button>
-            <button class="answer-btn">SQL</button>
+            <button class="answer-btn answer-btn--correct" type="button">
+              HTML
+              <span class="answer-status"
+                ><span aria-hidden="true">✓</span> Правильно</span
+              >
+            </button>
+            <button class="answer-btn answer-btn--wrong" type="button">
+              CSS
+              <span class="answer-status"
+                ><span aria-hidden="true">✗</span> Неправильно</span
+              >
+            </button>
+            <button class="answer-btn" type="button">Python</button>
+            <button class="answer-btn" type="button">SQL</button>
           </div>
         </div>
       </section>

@@ -1,3 +1,31 @@
+:root {
+  --color-bg: #faf9fc;
+  --color-surface: #ffffff;
+  --color-text: #1f1a2e;
+  --color-text-muted: #4a4458;
+  --color-border: #d9d2e9;
+
+  --color-primary: #5b21b6;
+  --color-primary-dark: #4c1d95;
+  --color-primary-mid: #6d28d9;
+  --color-primary-soft: #f3e8ff;
+  --color-primary-track: #e9d5ff;
+  --color-primary-border: #c4b5fd;
+
+  --color-accent: #ffd93d;
+
+  --color-correct-bg: #dcfce7;
+  --color-correct-text: #14532d;
+  --color-correct-border: #166534;
+  --color-wrong-bg: #fee2e2;
+  --color-wrong-text: #7f1d1d;
+  --color-wrong-border: #991b1b;
+
+  --font-heading: "Nunito", system-ui, sans-serif;
+  --font-body: system-ui, sans-serif;
+}
+
+/* Reset і типографіка */
 *,
 *::before,
 *::after {
@@ -6,35 +34,70 @@
 
 body {
   margin: 0;
-  font-family: system-ui, sans-serif;
+  font-family: var(--font-body);
+  font-size: 1rem;
   line-height: 1.6;
-  color: #222;
-  background-color: #faf9fc;
+  color: var(--color-text);
+  background-color: var(--color-bg);
 }
 
+h1,
+h2,
+h3 {
+  font-family: var(--font-heading);
+  line-height: 1.2;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Header */
 header {
-  background: linear-gradient(135deg, #6a1fb8, #9b4de0);
-  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
   padding: 24px;
-  text-align: center;
+  background: linear-gradient(
+    135deg,
+    var(--color-primary-dark),
+    var(--color-primary-mid)
+  );
+  color: #fff;
 }
 
 header h1 {
-  font-size: 2.5rem;
-  margin: 0 0 12px 0;
+  margin: 0;
+  font-size: 2.25rem;
+  font-weight: 800;
+}
+
+header nav {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16px;
 }
 
 header nav a {
-  color: #ffd93d;
+  color: var(--color-accent);
+  font-weight: 700;
   text-decoration: none;
-  font-weight: 600;
-  margin-right: 16px;
 }
 
 header nav a:hover {
   text-decoration: underline;
 }
 
+header nav a:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
+}
+
+/* main і section */
 main {
   max-width: 700px;
   margin: 0 auto;
@@ -46,111 +109,184 @@ section {
 }
 
 section h2 {
-  color: #6a1fb8;
-  border-bottom: 2px solid #ffd93d;
+  margin: 0 0 16px;
   padding-bottom: 8px;
+  font-size: 1.75rem;
+  color: var(--color-primary-dark);
+  border-bottom: 3px solid var(--color-accent);
 }
 
+/* Картка питання */
 .question-card {
   padding: 32px;
   border-radius: 12px;
-  background-color: #fff;
-  box-shadow: 0 4px 12px rgba(106, 31, 184, 0.15);
+  background-color: var(--color-surface);
+  box-shadow: 0 4px 12px rgba(91, 33, 182, 0.15);
   text-align: center;
+}
+
+.question-counter {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
+
+.question-counter__label {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.question-counter__current {
+  font-family: var(--font-heading);
+  font-size: 3.5rem;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--color-primary);
+}
+
+.question-counter__total {
+  font-size: 1.25rem;
+}
+
+.progress-bar {
+  display: block;
+  width: 100%;
+  height: 12px;
+  margin: 0 0 24px;
+  border: none;
+  border-radius: 6px;
+  overflow: hidden;
+  appearance: none;
+  background-color: var(--color-primary-track);
+}
+
+.progress-bar::-webkit-progress-bar {
+  background-color: var(--color-primary-track);
+}
+
+.progress-bar::-webkit-progress-value {
+  background-color: var(--color-primary);
+  border-radius: 6px;
+}
+
+.progress-bar::-moz-progress-bar {
+  background-color: var(--color-primary);
 }
 
 .question-text {
-  font-size: 1.2rem;
-  font-weight: 600;
-  margin-bottom: 20px;
+  margin: 0 0 24px;
+  font-family: var(--font-heading);
+  font-size: 1.25rem;
+  font-weight: 700;
 }
 
-.answer-btn {
-  display: block;
-  width: 100%;
-  padding: 12px;
-  margin-bottom: 8px;
-  border: none;
-  border-radius: 6px;
-  background-color: #f3e8ff;
-  color: #6a1fb8;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.answer-btn:hover {
-  background-color: #ffd93d;
-  color: #222;
-}
-
-.history-card {
-  padding: 10px;
-  border-radius: 8px;
-  background-color: #fff;
-  border: 1px solid #e5d9f7;
-  margin-bottom: 10px;
-}
-
-.history-card h3 {
-  margin: 0 0 4px 0;
-  color: #6a1fb8;
-}
-
-footer {
-  text-align: center;
-  padding: 16px;
-  font-size: 0.85rem;
-  color: #777;
-}
-
-header {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-
-header nav {
-  display: flex;
-  gap: 16px;
-  flex-wrap: wrap;
-  justify-content: center;
-}
-
-header nav a {
-  margin-right: 0; /* замінили margin на gap контейнера */
-}
-
-/* Крок 3: базові (мобільні) стилі для сіток */
+/* Кнопки відповідей */
 .answers-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 8px;
+  gap: 12px;
 }
 
 .answer-btn {
-  margin-bottom: 0; /* тепер відступи дає gap grid-контейнера */
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 4px 10px;
+  width: 100%;
+  min-height: 56px;
+  padding: 12px 16px;
+  border: 2px solid var(--color-primary-border);
+  border-radius: 8px;
+  background-color: var(--color-primary-soft);
+  color: var(--color-primary-dark);
+  font-family: inherit;
+  font-size: 1.25rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background-color 0.2s,
+    border-color 0.2s;
 }
 
+.answer-btn:hover {
+  background-color: var(--color-accent);
+  border-color: var(--color-primary-dark);
+  color: var(--color-text);
+}
+
+.answer-btn:focus-visible {
+  outline: 3px solid var(--color-primary-dark);
+  outline-offset: 3px;
+}
+
+.answer-status {
+  font-size: 0.875rem;
+  font-weight: 800;
+}
+
+.answer-btn--correct,
+.answer-btn--correct:hover {
+  background-color: var(--color-correct-bg);
+  border-color: var(--color-correct-border);
+  color: var(--color-correct-text);
+}
+
+.answer-btn--wrong,
+.answer-btn--wrong:hover {
+  background-color: var(--color-wrong-bg);
+  border-color: var(--color-wrong-border);
+  color: var(--color-wrong-text);
+}
+
+.answer-btn--selected,
+.answer-btn--selected:hover {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary-dark);
+  color: #fff;
+  box-shadow: 0 0 0 3px var(--color-accent);
+}
+
+/* Історія спроб */
 .cards {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 10px;
+  gap: 12px;
 }
 
 .history-card {
-  margin-bottom: 0; /* замінили margin на gap контейнера */
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background-color: var(--color-surface);
 }
 
-/* Крок 7: обмеження ширини зображень (на майбутнє, якщо додаси img) */
-img {
-  max-width: 100%;
-  height: auto;
+.history-card h3 {
+  margin: 0 0 4px;
+  font-size: 1.25rem;
+  color: var(--color-primary-dark);
 }
 
-/* Крок 5: планшет (мінімум 600px) */
+.history-card p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+
+/* Footer */
+footer {
+  padding: 16px;
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+
+/* Планшет */
 @media (min-width: 600px) {
   header {
     flex-direction: row;
@@ -166,7 +302,7 @@ img {
   }
 }
 
-/* Крок 6: десктоп (мінімум 1024px) */
+/* Десктоп */
 @media (min-width: 1024px) {
   .question-card {
     max-width: 600px;
