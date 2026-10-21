@@ -1,6 +1,12 @@
 console.log('app.js підключено');
 
-// масив питань вікторини
+// Прибираємо статичну заглушку з HTML (динамічне видалення елемента)
+const placeholder = document.querySelector('#questions-placeholder');
+if (placeholder) {
+  placeholder.remove();
+}
+
+// Дані: масив питань вікторини
 const questions = [
   { question: 'Яка мова розмітки використовується для структури вебсторінок?', answer: 'HTML' },
   { question: 'Яка мова відповідає за стилі сторінки?', answer: 'CSS' },
@@ -9,10 +15,14 @@ const questions = [
   { question: 'Яка CSS-технологія створює двовимірну сітку?', answer: 'Grid' }
 ];
 
-// задані відповіді користувача
+// Жорстко задані відповіді користувача
 const userAnswers = ['HTML', 'CSS', 'Python', 'h1', 'Flexbox'];
 
-// Виводить у консоль усі питання вікторини (цикл for...of)
+// Вибираємо контейнер списку та елемент підсумку
+const questionsList = document.querySelector('#questions-list');
+const questionsCount = document.querySelector('#questions-count');
+
+// Виводить у консоль усі питання вікторини
 function printQuestions(list) {
   console.log(`Усього питань: ${list.length}`);
   for (const item of list) {
@@ -20,7 +30,7 @@ function printQuestions(list) {
   }
 }
 
-// порівнює відповіді користувача з правильними і виводить результат
+// Порівнює відповіді користувача з правильними, виводить результат
 // кожного питання й повертає кількість правильних відповідей
 function checkAnswers(list, answers) {
   let correctCount = 0;
@@ -35,10 +45,34 @@ function checkAnswers(list, answers) {
   return correctCount;
 }
 
-// стрілкова функція - переводить кількість правильних відповідей у відсотки
+// Стрілкова функція: переводить кількість правильних відповідей у відсотки
 const calcScorePercent = (correctCount, total) => Math.round(correctCount / total * 100);
+
+// Рендер списку: очищає контейнер і для кожного питання створює li
+// з текстом питання, атрибутом data-answer і за умовою класом answered
+function renderQuestions(list) {
+  questionsList.innerHTML = '';
+  list.forEach((item, index) => {
+    const li = document.createElement('li');
+    li.textContent = item.question;
+    li.dataset.answer = item.answer;
+    if (userAnswers[index] !== undefined) {
+      li.classList.add('answered');
+    }
+    questionsList.append(li);
+  });
+}
+
+// Оновлює вміст наявного елемента-підсумку: кількість питань
+const updateQuestionsCount = list => {
+  questionsCount.textContent = `Усього питань: ${list.length}`;
+};
 
 printQuestions(questions);
 const correct = checkAnswers(questions, userAnswers);
 const percent = calcScorePercent(correct, questions.length);
 console.log(`Результат: ${correct} з ${questions.length} (${percent}%)`);
+
+// Виклики: частина з практики 7 (DOM)
+renderQuestions(questions);
+updateQuestionsCount(questions);

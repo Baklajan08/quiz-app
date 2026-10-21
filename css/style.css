@@ -302,6 +302,34 @@ footer {
   }
 }
 
+/* Список питань */
+.questions-count {
+  margin: 0 0 12px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
+
+.questions-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.questions-list li {
+  padding: 12px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background-color: var(--color-surface);
+}
+
+.questions-list li.answered {
+  border-left: 4px solid var(--color-primary);
+  background-color: var(--color-primary-soft);
+  color: var(--color-primary-dark);
+}
+
 /* Десктоп */
 @media (min-width: 1024px) {
   .question-card {
