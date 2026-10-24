@@ -330,6 +330,128 @@ footer {
   color: var(--color-primary-dark);
 }
 
+/* Форма вікторини */
+.quiz-fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.quiz-fieldset legend {
+  width: 100%;
+  padding: 0;
+}
+
+.answer-option {
+  position: relative;
+  display: block;
+}
+
+/* Radio візуально приховано, але лишається в потоці, щоб працювали клавіатура й валідація */
+.answer-option input {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  opacity: 0;
+}
+
+.answer-option input:focus-visible + .answer-btn {
+  outline: 3px solid var(--color-primary-dark);
+  outline-offset: 3px;
+}
+
+/* Обраний варіант — інверсія кольорів і жовте кільце */
+.answer-option input:checked + .answer-btn:not(.answer-btn--correct):not(.answer-btn--wrong) {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary-dark);
+  color: #fff;
+  box-shadow: 0 0 0 3px var(--color-accent);
+}
+
+/* Після перевірки вибір заблоковано */
+.answers-grid--locked .answer-btn {
+  cursor: default;
+  pointer-events: none;
+}
+
+.feedback {
+  margin: 16px 0 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-weight: 700;
+}
+
+.feedback:empty {
+  display: none;
+}
+
+.feedback--correct {
+  background-color: var(--color-correct-bg);
+  color: var(--color-correct-text);
+}
+
+.feedback--wrong {
+  background-color: var(--color-wrong-bg);
+  color: var(--color-wrong-text);
+}
+
+.feedback--result {
+  background-color: var(--color-primary-soft);
+  color: var(--color-primary-dark);
+}
+
+.quiz-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.action-btn {
+  min-height: 48px;
+  padding: 12px 24px;
+  border: 2px solid var(--color-primary);
+  border-radius: 8px;
+  background-color: var(--color-primary);
+  color: #fff;
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.action-btn:hover:not(:disabled) {
+  background-color: var(--color-primary-dark);
+}
+
+.action-btn:focus-visible {
+  outline: 3px solid var(--color-primary-dark);
+  outline-offset: 3px;
+}
+
+.action-btn--secondary {
+  background-color: var(--color-surface);
+  color: var(--color-primary-dark);
+}
+
+.action-btn--secondary:hover:not(:disabled) {
+  background-color: var(--color-accent);
+  color: var(--color-text);
+}
+
+.action-btn:disabled {
+  border-color: var(--color-primary-track);
+  background-color: var(--color-primary-track);
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+}
+
 /* Десктоп */
 @media (min-width: 1024px) {
   .question-card {

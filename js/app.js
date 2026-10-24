@@ -1,24 +1,37 @@
 console.log('app.js підключено');
 
-// Прибираємо статичну заглушку з HTML (динамічне видалення елемента)
+// Прибираємо статичну заглушку з HTML
 const placeholder = document.querySelector('#questions-placeholder');
 if (placeholder) {
   placeholder.remove();
 }
 
-// Дані: масив питань вікторини
+// Дані: питання з варіантами відповіді; answer — текст правильної відповіді
 const questions = [
-  { question: 'Яка мова розмітки використовується для структури вебсторінок?', answer: 'HTML' },
-  { question: 'Яка мова відповідає за стилі сторінки?', answer: 'CSS' },
-  { question: 'Яка мова робить вебсторінки інтерактивними?', answer: 'JavaScript' },
-  { question: 'Який тег позначає головний заголовок сторінки?', answer: 'h1' },
-  { question: 'Яка CSS-технологія створює двовимірну сітку?', answer: 'Grid' }
+  { question: 'Яка мова розмітки використовується для структури вебсторінок?', options: ['HTML', 'CSS', 'Python', 'SQL'], answer: 'HTML' },
+  { question: 'Яка мова відповідає за стилі сторінки?', options: ['HTML', 'CSS', 'JavaScript', 'Java'], answer: 'CSS' },
+  { question: 'Яка мова робить вебсторінки інтерактивними?', options: ['XML', 'JavaScript', 'SQL', 'Markdown'], answer: 'JavaScript' },
+  { question: 'Який тег позначає головний заголовок сторінки?', options: ['header', 'title', 'h1', 'main'], answer: 'h1' },
+  { question: 'Яка CSS-технологія створює двовимірну сітку?', options: ['Flexbox', 'Float', 'Position', 'Grid'], answer: 'Grid' }
 ];
 
-// Жорстко задані відповіді користувача
-const userAnswers = ['HTML', 'CSS', 'Python', 'h1', 'Flexbox'];
+// Стан вікторини
+let currentIndex = 0;
+let score = 0;
+let isChecked = false;
+let isFinished = false;
+const answeredIndexes = new Set();
 
-// Вибираємо контейнер списку та елемент підсумку
+// Вибираємо елементи сторінки
+const quizForm = document.querySelector('#quiz-form');
+const questionText = document.querySelector('#question-text');
+const answersContainer = document.querySelector('#answers');
+const questionCurrent = document.querySelector('#question-current');
+const questionTotal = document.querySelector('#question-total');
+const progressBar = document.querySelector('#progress');
+const feedback = document.querySelector('#feedback');
+const checkBtn = document.querySelector('#check-btn');
+const nextBtn = document.querySelector('#next-btn');
 const questionsList = document.querySelector('#questions-list');
 const questionsCount = document.querySelector('#questions-count');
 
@@ -30,33 +43,21 @@ function printQuestions(list) {
   }
 }
 
-// Порівнює відповіді користувача з правильними, виводить результат
-// кожного питання й повертає кількість правильних відповідей
-function checkAnswers(list, answers) {
-  let correctCount = 0;
-  for (let i = 0; i < list.length; i++) {
-    if (answers[i] === list[i].answer) {
-      console.log(`Питання ${i + 1}: правильно`);
-      correctCount++;
-    } else {
-      console.log(`Питання ${i + 1}: неправильно (правильна відповідь: ${list[i].answer})`);
-    }
-  }
-  return correctCount;
-}
-
 // Стрілкова функція: переводить кількість правильних відповідей у відсотки
 const calcScorePercent = (correctCount, total) => Math.round(correctCount / total * 100);
 
-// Рендер списку: очищає контейнер і для кожного питання створює li
-// з текстом питання, атрибутом data-answer і за умовою класом answered
+// Стрілкова функція: повертає індекс правильної відповіді в масиві options
+const getCorrectIndex = item => item.options.indexOf(item.answer);
+
+// Рендер списку всіх питань: li з текстом, атрибутом data-answer
+// і класом answered для питань, на які вже відповіли
 function renderQuestions(list) {
   questionsList.innerHTML = '';
   list.forEach((item, index) => {
     const li = document.createElement('li');
     li.textContent = item.question;
     li.dataset.answer = item.answer;
-    if (userAnswers[index] !== undefined) {
+    if (answeredIndexes.has(index)) {
       li.classList.add('answered');
     }
     questionsList.append(li);
@@ -68,11 +69,146 @@ const updateQuestionsCount = list => {
   questionsCount.textContent = `Усього питань: ${list.length}`;
 };
 
-printQuestions(questions);
-const correct = checkAnswers(questions, userAnswers);
-const percent = calcScorePercent(correct, questions.length);
-console.log(`Результат: ${correct} з ${questions.length} (${percent}%)`);
+// Малює поточне питання: лічильник, прогрес і radio-кнопки з варіантами
+function renderQuestion() {
+  const item = questions[currentIndex];
+  isChecked = false;
 
-// Виклики: частина з практики 7 (DOM)
+  questionText.textContent = item.question;
+  questionCurrent.textContent = currentIndex + 1;
+  questionTotal.textContent = `з ${questions.length}`;
+  progressBar.max = questions.length;
+  progressBar.value = currentIndex + 1;
+  progressBar.textContent = `${currentIndex + 1} з ${questions.length}`;
+
+  feedback.textContent = '';
+  feedback.className = 'feedback';
+  answersContainer.innerHTML = '';
+  answersContainer.classList.remove('answers-grid--locked');
+
+  item.options.forEach((optionText, index) => {
+    const label = document.createElement('label');
+    label.className = 'answer-option';
+
+    const input = document.createElement('input');
+    input.type = 'radio';
+    input.name = 'answer';
+    input.value = index;
+    input.required = true;
+
+    const text = document.createElement('span');
+    text.className = 'answer-btn';
+    text.textContent = optionText;
+
+    label.append(input, text);
+    answersContainer.append(label);
+  });
+
+  checkBtn.disabled = false;
+  nextBtn.disabled = true;
+  nextBtn.textContent = currentIndex === questions.length - 1 ? 'Показати результат' : 'Наступне питання';
+}
+
+// Додає до кнопки відповіді текстовий індикатор, щоб стан не залежав лише від кольору
+function addStatus(button, icon, text) {
+  const status = document.createElement('span');
+  status.className = 'answer-status';
+  const iconElement = document.createElement('span');
+  iconElement.setAttribute('aria-hidden', 'true');
+  iconElement.textContent = icon;
+  status.append(iconElement, ` ${text}`);
+  button.append(status);
+}
+
+// Фарбує правильну та помилкову відповідь і блокує вибір
+function markAnswers(chosenIndex, correctIndex) {
+  const options = answersContainer.querySelectorAll('.answer-option');
+  options.forEach((label, index) => {
+    const button = label.querySelector('.answer-btn');
+    label.querySelector('input').disabled = true;
+    if (index === correctIndex) {
+      button.classList.add('answer-btn--correct');
+      addStatus(button, '✓', 'Правильно');
+    } else if (index === chosenIndex) {
+      button.classList.add('answer-btn--wrong');
+      addStatus(button, '✗', 'Неправильно');
+    }
+  });
+  answersContainer.classList.add('answers-grid--locked');
+}
+
+// Показує підсумок після останнього питання
+function showResult() {
+  isFinished = true;
+  const percent = calcScorePercent(score, questions.length);
+  questionText.textContent = 'Вікторину завершено';
+  answersContainer.innerHTML = '';
+  feedback.textContent = `Результат: ${score} з ${questions.length} (${percent}%)`;
+  feedback.className = 'feedback feedback--result';
+  checkBtn.disabled = true;
+  nextBtn.textContent = 'Почати спочатку';
+  nextBtn.disabled = false;
+  console.log(`Результат: ${score} з ${questions.length} (${percent}%)`);
+}
+
+// Скидає стан вікторини й починає її спочатку
+function restartQuiz() {
+  currentIndex = 0;
+  score = 0;
+  isFinished = false;
+  answeredIndexes.clear();
+  quizForm.reset();
+  renderQuestion();
+  renderQuestions(questions);
+}
+
+// Обробник submit: перевіряє обрану відповідь без перезавантаження сторінки. 
+quizForm.addEventListener('submit', event => {
+  event.preventDefault();
+  if (isChecked || isFinished) return;
+
+  const chosen = quizForm.querySelector('input[name="answer"]:checked');
+  if (!chosen) return;
+
+  const item = questions[currentIndex];
+  const chosenIndex = Number(chosen.value);
+  const correctIndex = getCorrectIndex(item);
+
+  isChecked = true;
+  answeredIndexes.add(currentIndex);
+
+  if (chosenIndex === correctIndex) {
+    score++;
+    feedback.textContent = '✓ Правильно!';
+    feedback.classList.add('feedback--correct');
+  } else {
+    feedback.textContent = `✗ Неправильно. Правильна відповідь: ${item.answer}`;
+    feedback.classList.add('feedback--wrong');
+  }
+
+  markAnswers(chosenIndex, correctIndex);
+  checkBtn.disabled = true;
+  nextBtn.disabled = false;
+  renderQuestions(questions);
+});
+
+// Обробник click: переходить до наступного питання, скидає форму
+nextBtn.addEventListener('click', () => {
+  if (isFinished) {
+    restartQuiz();
+    return;
+  }
+  if (currentIndex === questions.length - 1) {
+    showResult();
+    return;
+  }
+  currentIndex++;
+  quizForm.reset();
+  renderQuestion();
+});
+
+// Початковий стан сторінки
+printQuestions(questions);
+renderQuestion();
 renderQuestions(questions);
 updateQuestionsCount(questions);

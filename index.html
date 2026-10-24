@@ -28,38 +28,23 @@
         <div class="question-card">
           <p class="question-counter">
             <span class="question-counter__label">Питання</span>
-            <span class="question-counter__current">3</span>
-            <span class="question-counter__total">з 10</span>
+            <span class="question-counter__current" id="question-current">1</span>
+            <span class="question-counter__total" id="question-total">з 5</span>
           </p>
-          <progress
-            class="progress-bar"
-            value="3"
-            max="10"
-            aria-label="Прогрес проходження вікторини"
-          >
-            3 з 10
-          </progress>
+          <progress class="progress-bar" id="progress" value="1" max="5" aria-label="Прогрес проходження вікторини">1 з 5</progress>
 
-          <p class="question-text">
-            Яка мова розмітки використовується для структури вебсторінок?
-          </p>
-
-          <div class="answers-grid">
-            <button class="answer-btn answer-btn--correct" type="button">
-              HTML
-              <span class="answer-status"
-                ><span aria-hidden="true">✓</span> Правильно</span
-              >
-            </button>
-            <button class="answer-btn answer-btn--wrong" type="button">
-              CSS
-              <span class="answer-status"
-                ><span aria-hidden="true">✗</span> Неправильно</span
-              >
-            </button>
-            <button class="answer-btn" type="button">Python</button>
-            <button class="answer-btn" type="button">SQL</button>
-          </div>
+          <form id="quiz-form">
+            <fieldset class="quiz-fieldset">
+              <legend class="question-text" id="question-text">Питання</legend>
+              <div class="answers-grid" id="answers"></div>
+            </fieldset>
+            <p class="feedback" id="feedback" role="status" aria-live="polite"></p>
+            
+            <div class="quiz-actions">
+              <button type="submit" class="action-btn" id="check-btn">Перевірити</button>
+              <button type="button" class="action-btn action-btn--secondary" id="next-btn" disabled>Наступне питання</button>
+            </div>
+          </form>
         </div>
       </section>
 
