@@ -463,3 +463,38 @@ footer {
     grid-template-columns: repeat(3, 1fr);
   }
 }
+
+/* Стан запиту до API */
+.api-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.api-status {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-weight: 700;
+}
+
+.api-status:empty {
+  display: none;
+}
+
+.api-status--loading {
+  background-color: var(--color-primary-soft);
+  color: var(--color-primary-dark);
+}
+
+.api-status--success {
+  background-color: var(--color-correct-bg);
+  color: var(--color-correct-text);
+}
+
+.api-status--error {
+  background-color: var(--color-wrong-bg);
+  color: var(--color-wrong-text);
+}

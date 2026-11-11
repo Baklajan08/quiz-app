@@ -1,19 +1,25 @@
 console.log('app.js підключено');
 
-// Прибираємо статичну заглушку з HTML
+// Прибираємо статичну заглушку з HTML (практика 7)
 const placeholder = document.querySelector('#questions-placeholder');
 if (placeholder) {
   placeholder.remove();
 }
 
-// Дані: питання з варіантами відповіді; answer — текст правильної відповіді
-const questions = [
+// адреса API (Open Trivia Database, без ключа)
+const API_URL = 'https://opentdb.com/api.php?amount=10&type=multiple';
+
+// Локальні питання: показуються до завантаження і залишаються, якщо запит не вдався
+const localQuestions = [
   { question: 'Яка мова розмітки використовується для структури вебсторінок?', options: ['HTML', 'CSS', 'Python', 'SQL'], answer: 'HTML' },
   { question: 'Яка мова відповідає за стилі сторінки?', options: ['HTML', 'CSS', 'JavaScript', 'Java'], answer: 'CSS' },
   { question: 'Яка мова робить вебсторінки інтерактивними?', options: ['XML', 'JavaScript', 'SQL', 'Markdown'], answer: 'JavaScript' },
   { question: 'Який тег позначає головний заголовок сторінки?', options: ['header', 'title', 'h1', 'main'], answer: 'h1' },
   { question: 'Яка CSS-технологія створює двовимірну сітку?', options: ['Flexbox', 'Float', 'Position', 'Grid'], answer: 'Grid' }
 ];
+
+// Поточний набір питань
+let questions = localQuestions;
 
 // Стан вікторини
 let currentIndex = 0;
@@ -34,6 +40,8 @@ const checkBtn = document.querySelector('#check-btn');
 const nextBtn = document.querySelector('#next-btn');
 const questionsList = document.querySelector('#questions-list');
 const questionsCount = document.querySelector('#questions-count');
+const refreshBtn = document.querySelector('#refresh-btn');
+const apiStatus = document.querySelector('#api-status');
 
 // Виводить у консоль усі питання вікторини
 function printQuestions(list) {
@@ -48,6 +56,38 @@ const calcScorePercent = (correctCount, total) => Math.round(correctCount / tota
 
 // Стрілкова функція: повертає індекс правильної відповіді в масиві options
 const getCorrectIndex = item => item.options.indexOf(item.answer);
+
+// розкодовує HTML-сутності (&quot;, &#039; тощо) у звичайний текст.
+// DOMParser не виконує скрипти, тому це безпечно
+const decodeHtml = text =>
+  new DOMParser().parseFromString(text, 'text/html').documentElement.textContent;
+
+// перемішує масив , повертає новий масив
+function shuffle(array) {
+  const result = [...array];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
+
+// перетворює питання з API у форму, з якою працює застосунок
+function convertApiQuestion(item) {
+  const answer = decodeHtml(item.correct_answer);
+  const options = [...item.incorrect_answers.map(decodeHtml), answer];
+  return {
+    question: decodeHtml(item.question),
+    options: shuffle(options),
+    answer
+  };
+}
+
+// показує стан запиту в елементі над карткою
+function setStatus(message, type) {
+  apiStatus.textContent = message;
+  apiStatus.className = message ? `api-status api-status--${type}` : 'api-status';
+}
 
 // Рендер списку всіх питань: li з текстом, атрибутом data-answer
 // і класом answered для питань, на які вже відповіли
@@ -162,7 +202,50 @@ function restartQuiz() {
   renderQuestions(questions);
 }
 
-// Обробник submit: перевіряє обрану відповідь без перезавантаження сторінки. 
+// завантажує питання з Open Trivia Database
+async function loadData() {
+  setStatus('Завантаження питань…', 'loading');
+  refreshBtn.disabled = true;
+
+  try {
+    const response = await fetch(API_URL);
+
+    // fetch не вважає 404/429/500 помилкою, тому статус перевіряємо вручну
+    if (!response.ok) {
+      const httpError = new Error(`Сервер відповів кодом ${response.status}`);
+      if (response.status === 429) {
+        httpError.userMessage = 'Забагато запитів. Зачекайте кілька секунд і натисніть «Оновити питання».';
+      }
+      throw httpError;
+    }
+
+    const data = await response.json();
+    console.log('Відповідь API:', data);
+
+    // API може відповісти статусом 200, але з response_code != 0
+    if (data.response_code !== 0 || !Array.isArray(data.results) || data.results.length === 0) {
+      throw new Error(`API не повернув питань (response_code: ${data.response_code})`);
+    }
+
+    questions = data.results.map(convertApiQuestion);
+    restartQuiz();
+    updateQuestionsCount(questions);
+    printQuestions(questions);
+    setStatus(`Завантажено питань з API: ${questions.length}`, 'success');
+  } catch (error) {
+    // Користувачу показуємо зрозуміле повідомлення, деталі лишаємо для розробника
+    setStatus(
+      error.userMessage || 'Не вдалося завантажити питання. Перевірте з\'єднання та натисніть «Оновити питання».',
+      'error'
+    );
+    console.error(error);
+  } finally {
+    refreshBtn.disabled = false;
+  }
+}
+
+// Обробник submit: перевіряє обрану відповідь без перезавантаження сторінки.
+// Якщо жоден radio не обрано, submit не спрацює: браузер покаже повідомлення required
 quizForm.addEventListener('submit', event => {
   event.preventDefault();
   if (isChecked || isFinished) return;
@@ -193,6 +276,7 @@ quizForm.addEventListener('submit', event => {
 });
 
 // Обробник click: переходить до наступного питання, скидає форму
+// (form.reset) і малює нове питання; після останнього показує результат
 nextBtn.addEventListener('click', () => {
   if (isFinished) {
     restartQuiz();
@@ -207,8 +291,12 @@ nextBtn.addEventListener('click', () => {
   renderQuestion();
 });
 
-// Початковий стан сторінки
+// кнопка «Оновити питання» повторює запит без перезавантаження сторінки
+refreshBtn.addEventListener('click', loadData);
+
+// Початковий стан сторінки: спочатку локальні питання, потім запит до API
 printQuestions(questions);
 renderQuestion();
 renderQuestions(questions);
 updateQuestionsCount(questions);
+loadData();
