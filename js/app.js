@@ -1,68 +1,42 @@
 console.log('app.js підключено');
 
-// Прибираємо статичну заглушку з HTML (практика 7)
-const placeholder = document.querySelector('#questions-placeholder');
-if (placeholder) {
-  placeholder.remove();
-}
+/*
+  Практика 10: клієнтський фреймворк Vue 3 (підключено через CDN, без збірки).
+  Вибір: Vue підключається одним тегом без Babel, а його шаблони близькі до HTML проєкту.
+  Ручний DOM-код з практик 7-9 (renderQuestion, renderQuestions, markAnswers,
+  updateQuestionsCount та всі querySelector) видалено: його замінили шаблон у index.html
+  і компонент QuizQuestion. Попередні версії лишаються в історії Git.
+*/
 
-// адреса API (Open Trivia Database, без ключа)
+// Адреса API (Open Trivia Database, без ключа)
 const API_URL = 'https://opentdb.com/api.php?amount=10&type=multiple';
 
-// Локальні питання: показуються до завантаження і залишаються, якщо запит не вдався
+// Будує об'єкт питання; correctIndex - індекс правильної відповіді в options
+const buildQuestion = (id, question, options, answer) => ({
+  id,
+  question,
+  options,
+  answer,
+  correctIndex: options.indexOf(answer)
+});
+
+// Локальні питання: показуються до завантаження і лишаються, якщо запит не вдався
 const localQuestions = [
-  { question: 'Яка мова розмітки використовується для структури вебсторінок?', options: ['HTML', 'CSS', 'Python', 'SQL'], answer: 'HTML' },
-  { question: 'Яка мова відповідає за стилі сторінки?', options: ['HTML', 'CSS', 'JavaScript', 'Java'], answer: 'CSS' },
-  { question: 'Яка мова робить вебсторінки інтерактивними?', options: ['XML', 'JavaScript', 'SQL', 'Markdown'], answer: 'JavaScript' },
-  { question: 'Який тег позначає головний заголовок сторінки?', options: ['header', 'title', 'h1', 'main'], answer: 'h1' },
-  { question: 'Яка CSS-технологія створює двовимірну сітку?', options: ['Flexbox', 'Float', 'Position', 'Grid'], answer: 'Grid' }
+  buildQuestion(1, 'Яка мова розмітки використовується для структури вебсторінок?', ['HTML', 'CSS', 'Python', 'SQL'], 'HTML'),
+  buildQuestion(2, 'Яка мова відповідає за стилі сторінки?', ['HTML', 'CSS', 'JavaScript', 'Java'], 'CSS'),
+  buildQuestion(3, 'Яка мова робить вебсторінки інтерактивними?', ['XML', 'JavaScript', 'SQL', 'Markdown'], 'JavaScript'),
+  buildQuestion(4, 'Який тег позначає головний заголовок сторінки?', ['header', 'title', 'h1', 'main'], 'h1'),
+  buildQuestion(5, 'Яка CSS-технологія створює двовимірну сітку?', ['Flexbox', 'Float', 'Position', 'Grid'], 'Grid')
 ];
-
-// Поточний набір питань
-let questions = localQuestions;
-
-// Стан вікторини
-let currentIndex = 0;
-let score = 0;
-let isChecked = false;
-let isFinished = false;
-const answeredIndexes = new Set();
-
-// Вибираємо елементи сторінки
-const quizForm = document.querySelector('#quiz-form');
-const questionText = document.querySelector('#question-text');
-const answersContainer = document.querySelector('#answers');
-const questionCurrent = document.querySelector('#question-current');
-const questionTotal = document.querySelector('#question-total');
-const progressBar = document.querySelector('#progress');
-const feedback = document.querySelector('#feedback');
-const checkBtn = document.querySelector('#check-btn');
-const nextBtn = document.querySelector('#next-btn');
-const questionsList = document.querySelector('#questions-list');
-const questionsCount = document.querySelector('#questions-count');
-const refreshBtn = document.querySelector('#refresh-btn');
-const apiStatus = document.querySelector('#api-status');
-
-// Виводить у консоль усі питання вікторини
-function printQuestions(list) {
-  console.log(`Усього питань: ${list.length}`);
-  for (const item of list) {
-    console.log(`- ${item.question}`);
-  }
-}
 
 // Стрілкова функція: переводить кількість правильних відповідей у відсотки
 const calcScorePercent = (correctCount, total) => Math.round(correctCount / total * 100);
 
-// Стрілкова функція: повертає індекс правильної відповіді в масиві options
-const getCorrectIndex = item => item.options.indexOf(item.answer);
-
-// розкодовує HTML-сутності (&quot;, &#039; тощо) у звичайний текст.
-// DOMParser не виконує скрипти, тому це безпечно
+// Розкодовує HTML-сутності (&quot;, &#039; тощо) у звичайний текст
 const decodeHtml = text =>
   new DOMParser().parseFromString(text, 'text/html').documentElement.textContent;
 
-// перемішує масив , повертає новий масив
+// Перемішує масив (алгоритм Фішера-Єйтса), повертає новий масив
 function shuffle(array) {
   const result = [...array];
   for (let i = result.length - 1; i > 0; i--) {
@@ -72,231 +46,192 @@ function shuffle(array) {
   return result;
 }
 
-// перетворює питання з API у форму, з якою працює застосунок
-function convertApiQuestion(item) {
+// Перетворює питання з API у формат застосунку, розкодовуючи HTML-сутності
+function convertApiQuestion(item, index) {
   const answer = decodeHtml(item.correct_answer);
-  const options = [...item.incorrect_answers.map(decodeHtml), answer];
-  return {
-    question: decodeHtml(item.question),
-    options: shuffle(options),
-    answer
-  };
+  const options = shuffle([...item.incorrect_answers.map(decodeHtml), answer]);
+  return buildQuestion(index + 1, decodeHtml(item.question), options, answer);
 }
 
-// показує стан запиту в елементі над карткою
-function setStatus(message, type) {
-  apiStatus.textContent = message;
-  apiStatus.className = message ? `api-status api-status--${type}` : 'api-status';
-}
-
-// Рендер списку всіх питань: li з текстом, атрибутом data-answer
-// і класом answered для питань, на які вже відповіли
-function renderQuestions(list) {
-  questionsList.innerHTML = '';
-  list.forEach((item, index) => {
-    const li = document.createElement('li');
-    li.textContent = item.question;
-    li.dataset.answer = item.answer;
-    if (answeredIndexes.has(index)) {
-      li.classList.add('answered');
+// Компонент одного питання. Props: question, options, correctIndex.
+// Локальний реактивний стан selectedIndex; про вибір повідомляє подією answer(selectedIndex)
+const QuizQuestion = {
+  name: 'QuizQuestion',
+  props: {
+    question: { type: String, required: true },
+    options: { type: Array, required: true },
+    correctIndex: { type: Number, required: true }
+  },
+  emits: ['answer'],
+  data() {
+    return { selectedIndex: null };
+  },
+  computed: {
+    // Похідне значення: чи вже обрано відповідь
+    answered() {
+      return this.selectedIndex !== null;
     }
-    questionsList.append(li);
-  });
-}
-
-// Оновлює вміст наявного елемента-підсумку: кількість питань
-const updateQuestionsCount = list => {
-  questionsCount.textContent = `Усього питань: ${list.length}`;
+  },
+  methods: {
+    // Фіксує вибір і передає його батьківському компоненту
+    choose(index) {
+      if (this.answered) return;
+      this.selectedIndex = index;
+      this.$emit('answer', index);
+    },
+    // CSS-клас кнопки залежно від стану (правильна / помилкова)
+    optionClass(index) {
+      if (!this.answered) return '';
+      if (index === this.correctIndex) return 'answer-btn--correct';
+      if (index === this.selectedIndex) return 'answer-btn--wrong';
+      return '';
+    }
+  },
+  template: `
+    <fieldset class="quiz-fieldset">
+      <legend class="question-text">{{ question }}</legend>
+      <div class="answers-grid" :class="{ 'answers-grid--locked': answered }">
+        <button
+          v-for="(option, index) in options"
+          :key="option"
+          type="button"
+          class="answer-btn"
+          :class="optionClass(index)"
+          :aria-disabled="answered"
+          @click="choose(index)"
+        >
+          {{ option }}
+          <span v-if="answered && index === correctIndex" class="answer-status"><span aria-hidden="true">✓</span> Правильно</span>
+          <span v-else-if="answered && index === selectedIndex" class="answer-status"><span aria-hidden="true">✗</span> Неправильно</span>
+        </button>
+      </div>
+    </fieldset>
+  `
 };
 
-// Малює поточне питання: лічильник, прогрес і radio-кнопки з варіантами
-function renderQuestion() {
-  const item = questions[currentIndex];
-  isChecked = false;
-
-  questionText.textContent = item.question;
-  questionCurrent.textContent = currentIndex + 1;
-  questionTotal.textContent = `з ${questions.length}`;
-  progressBar.max = questions.length;
-  progressBar.value = currentIndex + 1;
-  progressBar.textContent = `${currentIndex + 1} з ${questions.length}`;
-
-  feedback.textContent = '';
-  feedback.className = 'feedback';
-  answersContainer.innerHTML = '';
-  answersContainer.classList.remove('answers-grid--locked');
-
-  item.options.forEach((optionText, index) => {
-    const label = document.createElement('label');
-    label.className = 'answer-option';
-
-    const input = document.createElement('input');
-    input.type = 'radio';
-    input.name = 'answer';
-    input.value = index;
-    input.required = true;
-
-    const text = document.createElement('span');
-    text.className = 'answer-btn';
-    text.textContent = optionText;
-
-    label.append(input, text);
-    answersContainer.append(label);
-  });
-
-  checkBtn.disabled = false;
-  nextBtn.disabled = true;
-  nextBtn.textContent = currentIndex === questions.length - 1 ? 'Показати результат' : 'Наступне питання';
-}
-
-// Додає до кнопки відповіді текстовий індикатор, щоб стан не залежав лише від кольору
-function addStatus(button, icon, text) {
-  const status = document.createElement('span');
-  status.className = 'answer-status';
-  const iconElement = document.createElement('span');
-  iconElement.setAttribute('aria-hidden', 'true');
-  iconElement.textContent = icon;
-  status.append(iconElement, ` ${text}`);
-  button.append(status);
-}
-
-// Фарбує правильну та помилкову відповідь і блокує вибір
-function markAnswers(chosenIndex, correctIndex) {
-  const options = answersContainer.querySelectorAll('.answer-option');
-  options.forEach((label, index) => {
-    const button = label.querySelector('.answer-btn');
-    label.querySelector('input').disabled = true;
-    if (index === correctIndex) {
-      button.classList.add('answer-btn--correct');
-      addStatus(button, '✓', 'Правильно');
-    } else if (index === chosenIndex) {
-      button.classList.add('answer-btn--wrong');
-      addStatus(button, '✗', 'Неправильно');
+// Кореневий компонент: увесь стан вікторини в реактивному data()
+Vue.createApp({
+  components: { QuizQuestion },
+  data() {
+    return {
+      questions: localQuestions,
+      currentIndex: 0,
+      score: 0,
+      answeredIds: [],
+      lastAnswerCorrect: null,
+      isFinished: false,
+      // round входить у :key компонента, щоб після нового завантаження питань
+      // компонент створювався заново і не зберігав старий вибір
+      round: 0,
+      loading: false,
+      status: { message: '', type: '' }
+    };
+  },
+  computed: {
+    // Поточне питання
+    current() {
+      return this.questions[this.currentIndex];
+    },
+    questionNumber() {
+      return this.currentIndex + 1;
+    },
+    isLast() {
+      return this.currentIndex === this.questions.length - 1;
+    },
+    // Чи відповіли на поточне питання
+    isAnswered() {
+      return this.answeredIds.includes(this.current.id);
+    },
+    // Відсоток правильних відповідей перераховується сам при зміні score
+    percent() {
+      return calcScorePercent(this.score, this.questions.length);
+    },
+    feedbackText() {
+      if (!this.isAnswered) return '';
+      return this.lastAnswerCorrect
+        ? '✓ Правильно!'
+        : `✗ Неправильно. Правильна відповідь: ${this.current.answer}`;
+    },
+    nextLabel() {
+      if (this.isFinished) return 'Почати спочатку';
+      return this.isLast ? 'Показати результат' : 'Наступне питання';
     }
-  });
-  answersContainer.classList.add('answers-grid--locked');
-}
-
-// Показує підсумок після останнього питання
-function showResult() {
-  isFinished = true;
-  const percent = calcScorePercent(score, questions.length);
-  questionText.textContent = 'Вікторину завершено';
-  answersContainer.innerHTML = '';
-  feedback.textContent = `Результат: ${score} з ${questions.length} (${percent}%)`;
-  feedback.className = 'feedback feedback--result';
-  checkBtn.disabled = true;
-  nextBtn.textContent = 'Почати спочатку';
-  nextBtn.disabled = false;
-  console.log(`Результат: ${score} з ${questions.length} (${percent}%)`);
-}
-
-// Скидає стан вікторини й починає її спочатку
-function restartQuiz() {
-  currentIndex = 0;
-  score = 0;
-  isFinished = false;
-  answeredIndexes.clear();
-  quizForm.reset();
-  renderQuestion();
-  renderQuestions(questions);
-}
-
-// завантажує питання з Open Trivia Database
-async function loadData() {
-  setStatus('Завантаження питань…', 'loading');
-  refreshBtn.disabled = true;
-
-  try {
-    const response = await fetch(API_URL);
-
-    // fetch не вважає 404/429/500 помилкою, тому статус перевіряємо вручну
-    if (!response.ok) {
-      const httpError = new Error(`Сервер відповів кодом ${response.status}`);
-      if (response.status === 429) {
-        httpError.userMessage = 'Забагато запитів. Зачекайте кілька секунд і натисніть «Оновити питання».';
+  },
+  methods: {
+    // Обробник події answer від дочірнього компонента: перевіряє відповідь і оновлює бали
+    onAnswer(selectedIndex) {
+      if (this.isAnswered) return;
+      const correct = selectedIndex === this.current.correctIndex;
+      if (correct) this.score++;
+      this.lastAnswerCorrect = correct;
+      this.answeredIds.push(this.current.id);
+    },
+    // Перехід до наступного питання; після останнього показує результат
+    nextQuestion() {
+      if (this.isFinished) {
+        this.restart();
+        return;
       }
-      throw httpError;
+      if (this.isLast) {
+        this.isFinished = true;
+        console.log(`Результат: ${this.score} з ${this.questions.length} (${this.percent}%)`);
+        return;
+      }
+      this.currentIndex++;
+      this.lastAnswerCorrect = null;
+    },
+    // Скидає стан вікторини
+    restart() {
+      this.currentIndex = 0;
+      this.score = 0;
+      this.answeredIds = [];
+      this.lastAnswerCorrect = null;
+      this.isFinished = false;
+      this.round++;
+    },
+    setStatus(message, type) {
+      this.status = { message, type };
+    },
+    // fetch -> перевірка response.ok -> JSON -> перетворення -> запис у реактивний стан.
+    // Помилки HTTP і мережі ловить catch, стан завантаження вимикається у finally
+    async loadData() {
+      this.loading = true;
+      this.setStatus('Завантаження питань…', 'loading');
+
+      try {
+        const response = await fetch(API_URL);
+
+        if (!response.ok) {
+          const httpError = new Error(`Сервер відповів кодом ${response.status}`);
+          if (response.status === 429) {
+            httpError.userMessage = 'Забагато запитів. Зачекайте кілька секунд і натисніть «Оновити питання».';
+          }
+          throw httpError;
+        }
+
+        const data = await response.json();
+        console.log('Відповідь API:', data);
+
+        if (data.response_code !== 0 || !Array.isArray(data.results) || data.results.length === 0) {
+          throw new Error(`API не повернув питань (response_code: ${data.response_code})`);
+        }
+
+        this.questions = data.results.map(convertApiQuestion);
+        this.restart();
+        this.setStatus(`Завантажено питань з API: ${this.questions.length}`, 'success');
+      } catch (error) {
+        this.setStatus(
+          error.userMessage || 'Не вдалося завантажити питання. Перевірте з\'єднання та натисніть «Оновити питання».',
+          'error'
+        );
+        console.error(error);
+      } finally {
+        this.loading = false;
+      }
     }
-
-    const data = await response.json();
-    console.log('Відповідь API:', data);
-
-    // API може відповісти статусом 200, але з response_code != 0
-    if (data.response_code !== 0 || !Array.isArray(data.results) || data.results.length === 0) {
-      throw new Error(`API не повернув питань (response_code: ${data.response_code})`);
-    }
-
-    questions = data.results.map(convertApiQuestion);
-    restartQuiz();
-    updateQuestionsCount(questions);
-    printQuestions(questions);
-    setStatus(`Завантажено питань з API: ${questions.length}`, 'success');
-  } catch (error) {
-    // Користувачу показуємо зрозуміле повідомлення, деталі лишаємо для розробника
-    setStatus(
-      error.userMessage || 'Не вдалося завантажити питання. Перевірте з\'єднання та натисніть «Оновити питання».',
-      'error'
-    );
-    console.error(error);
-  } finally {
-    refreshBtn.disabled = false;
+  },
+  // Після створення застосунку одразу завантажуємо питання з API
+  mounted() {
+    this.loadData();
   }
-}
-
-// Обробник submit: перевіряє обрану відповідь без перезавантаження сторінки.
-// Якщо жоден radio не обрано, submit не спрацює: браузер покаже повідомлення required
-quizForm.addEventListener('submit', event => {
-  event.preventDefault();
-  if (isChecked || isFinished) return;
-
-  const chosen = quizForm.querySelector('input[name="answer"]:checked');
-  if (!chosen) return;
-
-  const item = questions[currentIndex];
-  const chosenIndex = Number(chosen.value);
-  const correctIndex = getCorrectIndex(item);
-
-  isChecked = true;
-  answeredIndexes.add(currentIndex);
-
-  if (chosenIndex === correctIndex) {
-    score++;
-    feedback.textContent = '✓ Правильно!';
-    feedback.classList.add('feedback--correct');
-  } else {
-    feedback.textContent = `✗ Неправильно. Правильна відповідь: ${item.answer}`;
-    feedback.classList.add('feedback--wrong');
-  }
-
-  markAnswers(chosenIndex, correctIndex);
-  checkBtn.disabled = true;
-  nextBtn.disabled = false;
-  renderQuestions(questions);
-});
-
-// Обробник click: переходить до наступного питання, скидає форму
-// (form.reset) і малює нове питання; після останнього показує результат
-nextBtn.addEventListener('click', () => {
-  if (isFinished) {
-    restartQuiz();
-    return;
-  }
-  if (currentIndex === questions.length - 1) {
-    showResult();
-    return;
-  }
-  currentIndex++;
-  quizForm.reset();
-  renderQuestion();
-});
-
-// кнопка «Оновити питання» повторює запит без перезавантаження сторінки
-refreshBtn.addEventListener('click', loadData);
-
-// Початковий стан сторінки: спочатку локальні питання, потім запит до API
-printQuestions(questions);
-renderQuestion();
-renderQuestions(questions);
-updateQuestionsCount(questions);
-loadData();
+}).mount('#app');

@@ -498,3 +498,15 @@ footer {
   background-color: var(--color-wrong-bg);
   color: var(--color-wrong-text);
 }
+
+/* Vue */
+/* Ховає шаблон із {{ }}, поки Vue не змонтувався */
+[v-cloak] {
+  display: none;
+}
+
+.score {
+  margin: 0 0 16px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+}

@@ -1,82 +1,92 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="uk">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Вікторина</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800&display=swap"
-      rel="stylesheet"
-    />
-    <link rel="stylesheet" href="css/style.css" />
-    <script src="js/app.js" defer></script>
-  </head>
-  <body>
-    <header>
-      <h1>Вікторина</h1>
-      <nav>
-        <a href="#question">Питання</a>
-        <a href="#history">Результати</a>
-      </nav>
-    </header>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Вікторина</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <!-- Vue 3 (глобальна збірка). Обидва скрипти з defer виконуються по порядку: спочатку Vue, потім app.js -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js" defer></script>
+  <script src="js/app.js" defer></script>
+</head>
+<body>
+  <header>
+    <h1>Вікторина</h1>
+    <nav>
+      <a href="#question">Питання</a>
+      <a href="#history">Результати</a>
+    </nav>
+  </header>
 
-    <main>
+  <main>
+    <!-- Кореневий елемент Vue: усе всередині є шаблоном застосунку -->
+    <div id="app" v-cloak>
       <section id="question">
         <h2>Поточне питання</h2>
+
         <div class="api-bar">
-          <button type="button" class="action-btn action-btn--secondary" id="refresh-btn">Оновити питання</button>
-          <p class="api-status" id="api-status" role="status" aria-live="polite"></p>
+          <button type="button" class="action-btn action-btn--secondary" :disabled="loading" @click="loadData">Оновити питання</button>
+          <p v-if="status.message" class="api-status" :class="'api-status--' + status.type" role="status" aria-live="polite">{{ status.message }}</p>
         </div>
+
         <div class="question-card">
           <p class="question-counter">
             <span class="question-counter__label">Питання</span>
-            <span class="question-counter__current" id="question-current">1</span>
-            <span class="question-counter__total" id="question-total">з 5</span>
+            <span class="question-counter__current">{{ questionNumber }}</span>
+            <span class="question-counter__total">з {{ questions.length }}</span>
           </p>
-          <progress class="progress-bar" id="progress" value="1" max="5" aria-label="Прогрес проходження вікторини">1 з 5</progress>
+          <progress class="progress-bar" :value="questionNumber" :max="questions.length" aria-label="Прогрес проходження вікторини">{{ questionNumber }} з {{ questions.length }}</progress>
+          <p class="score">Рахунок: {{ score }} з {{ questions.length }}</p>
 
-          <form id="quiz-form">
-            <fieldset class="quiz-fieldset">
-              <legend class="question-text" id="question-text">Питання</legend>
-              <div class="answers-grid" id="answers"></div>
-            </fieldset>
-            <p class="feedback" id="feedback" role="status" aria-live="polite"></p>
-            
-            <div class="quiz-actions">
-              <button type="submit" class="action-btn" id="check-btn">Перевірити</button>
-              <button type="button" class="action-btn action-btn--secondary" id="next-btn" disabled>Наступне питання</button>
-            </div>
-          </form>
+          <!-- Компонент отримує дані через props і повідомляє про вибір подією answer -->
+          <quiz-question
+            v-if="!isFinished"
+            :key="round + '-' + current.id"
+            :question="current.question"
+            :options="current.options"
+            :correct-index="current.correctIndex"
+            @answer="onAnswer"
+          ></quiz-question>
+          <p v-else class="question-text">Вікторину завершено</p>
+
+          <p v-if="isFinished" class="feedback feedback--result" role="status">Результат: {{ score }} з {{ questions.length }} ({{ percent }}%)</p>
+          <p v-else-if="feedbackText" class="feedback" :class="lastAnswerCorrect ? 'feedback--correct' : 'feedback--wrong'" role="status" aria-live="polite">{{ feedbackText }}</p>
+
+          <div class="quiz-actions">
+            <button type="button" class="action-btn" :disabled="!isAnswered && !isFinished" @click="nextQuestion">{{ nextLabel }}</button>
+          </div>
         </div>
       </section>
 
       <section id="questions">
         <h2>Усі питання</h2>
-        <p id="questions-count" class="questions-count">Питань: 0</p>
+        <p id="questions-count" class="questions-count">Усього питань: {{ questions.length }}</p>
         <ul id="questions-list" class="questions-list">
-          <li id="questions-placeholder">Тут з'являться питання</li>
+          <li v-for="q in questions" :key="q.id" :data-answer="q.answer" :class="{ answered: answeredIds.includes(q.id) }">{{ q.question }}</li>
         </ul>
       </section>
+    </div>
 
-      <section id="history">
-        <h2>Історія спроб</h2>
-        <div class="cards">
-          <article class="history-card">
-            <h3>02.09.2026 — 7/10</h3>
-            <p>Результат попередньої спроби проходження вікторини.</p>
-          </article>
-          <article class="history-card">
-            <h3>01.09.2026 — 5/10</h3>
-            <p>Результат попередньої спроби проходження вікторини.</p>
-          </article>
-        </div>
-      </section>
-    </main>
+    <section id="history">
+      <h2>Історія спроб</h2>
+      <div class="cards">
+        <article class="history-card">
+          <h3>02.09.2026 — 7/10</h3>
+          <p>Результат попередньої спроби проходження вікторини.</p>
+        </article>
+        <article class="history-card">
+          <h3>01.09.2026 — 5/10</h3>
+          <p>Результат попередньої спроби проходження вікторини.</p>
+        </article>
+      </div>
+    </section>
+  </main>
 
-    <footer>
-      <p>Навчальний проєкт. Автор: Данило Клещар. &copy; 2026</p>
-    </footer>
-  </body>
+  <footer>
+    <p>Навчальний проєкт. Автор: Данило Клещар. &copy; 2026</p>
+  </footer>
+</body>
 </html>
