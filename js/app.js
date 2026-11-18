@@ -1,7 +1,7 @@
 console.log('app.js підключено');
 
 // Режим сховища: 'localStorage' (етап 1) або 'indexedDB' (етап 2, з міграцією)
-const STORAGE_MODE = 'localStorage';
+const STORAGE_MODE = 'indexedDB';
 
 const LS_KEY = 'quizResults';              // ключ localStorage з масивом результатів
 const LS_MIGRATED_KEY = 'quizResultsMigrated'; // прапорець: міграцію вже виконано
