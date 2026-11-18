@@ -41,7 +41,6 @@
           <progress class="progress-bar" :value="questionNumber" :max="questions.length" aria-label="Прогрес проходження вікторини">{{ questionNumber }} з {{ questions.length }}</progress>
           <p class="score">Рахунок: {{ score }} з {{ questions.length }}</p>
 
-          <!-- Компонент отримує дані через props і повідомляє про вибір подією answer -->
           <quiz-question
             v-if="!isFinished"
             :key="round + '-' + current.id"
@@ -68,21 +67,22 @@
           <li v-for="q in questions" :key="q.id" :data-answer="q.answer" :class="{ answered: answeredIds.includes(q.id) }">{{ q.question }}</li>
         </ul>
       </section>
-    </div>
 
-    <section id="history">
-      <h2>Історія спроб</h2>
-      <div class="cards">
-        <article class="history-card">
-          <h3>02.09.2026 — 7/10</h3>
-          <p>Результат попередньої спроби проходження вікторини.</p>
-        </article>
-        <article class="history-card">
-          <h3>01.09.2026 — 5/10</h3>
-          <p>Результат попередньої спроби проходження вікторини.</p>
-        </article>
-      </div>
-    </section>
+      <!-- результати з локального сховища (localStorage / IndexedDB) -->
+      <section id="history">
+        <h2>Історія спроб</h2>
+        <p v-if="storageError" class="api-status api-status--error" role="alert">{{ storageError }}</p>
+        <p class="questions-count">Збережено спроб: {{ results.length }}. Найкращі результати:</p>
+        <p v-if="!results.length && !storageError" class="history-empty">Поки що немає збережених результатів. Пройдіть вікторину до кінця.</p>
+        <div class="cards">
+          <article v-for="r in bestResults" :key="r.id" class="history-card">
+            <h3>{{ r.score }} з {{ r.total }} ({{ resultPercent(r) }}%)</h3>
+            <p>{{ formatDate(r.date) }}</p>
+            <button type="button" class="delete-btn" :aria-label="'Видалити результат від ' + formatDate(r.date)" @click="onDelete(r.id)">Видалити</button>
+          </article>
+        </div>
+      </section>
+    </div>
   </main>
 
   <footer>

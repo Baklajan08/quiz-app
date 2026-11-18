@@ -510,3 +510,32 @@ footer {
   font-weight: 700;
   color: var(--color-text-muted);
 }
+
+/* Збережені результати */
+.history-empty {
+  margin: 0 0 12px;
+  color: var(--color-text-muted);
+}
+
+.delete-btn {
+  margin-top: 8px;
+  padding: 6px 12px;
+  border: 1px solid var(--color-wrong-border);
+  border-radius: 6px;
+  background-color: var(--color-wrong-bg);
+  color: var(--color-wrong-text);
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.delete-btn:hover {
+  background-color: var(--color-wrong-text);
+  color: #fff;
+}
+
+.delete-btn:focus-visible {
+  outline: 3px solid var(--color-primary-dark);
+  outline-offset: 3px;
+}

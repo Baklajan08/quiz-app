@@ -1,12 +1,150 @@
 console.log('app.js підключено');
 
-/*
-  Практика 10: клієнтський фреймворк Vue 3 (підключено через CDN, без збірки).
-  Вибір: Vue підключається одним тегом без Babel, а його шаблони близькі до HTML проєкту.
-  Ручний DOM-код з практик 7-9 (renderQuestion, renderQuestions, markAnswers,
-  updateQuestionsCount та всі querySelector) видалено: його замінили шаблон у index.html
-  і компонент QuizQuestion. Попередні версії лишаються в історії Git.
-*/
+// Режим сховища: 'localStorage' (етап 1) або 'indexedDB' (етап 2, з міграцією)
+const STORAGE_MODE = 'localStorage';
+
+const LS_KEY = 'quizResults';              // ключ localStorage з масивом результатів
+const LS_MIGRATED_KEY = 'quizResultsMigrated'; // прапорець: міграцію вже виконано
+const DB_NAME = 'QuizDB';
+const DB_VERSION = 1;
+const STORE_NAME = 'results';
+
+// Зберігає масив результатів у localStorage як JSON-рядок
+function saveToLocalStorage(items) {
+  localStorage.setItem(LS_KEY, JSON.stringify(items));
+}
+
+// Читає масив результатів із localStorage; пошкоджені дані не ламають застосунок,
+// а дають порожній список
+function loadFromLocalStorage() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (error) {
+    console.error('Пошкоджені дані в localStorage:', error);
+    return [];
+  }
+}
+
+// Відкриває базу. onupgradeneeded спрацьовує лише при створенні бази або підвищенні версії:
+// саме тут створюється object store з автоінкрементним ключем id
+function openDB() {
+  return new Promise((resolve, reject) => {
+    if (!('indexedDB' in window)) {
+      reject(new Error('IndexedDB недоступна в цьому браузері'));
+      return;
+    }
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    request.onupgradeneeded = event => {
+      const db = event.target.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
+      }
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+// З'єднання з базою відкривається один раз і використовується повторно
+let dbPromise = null;
+function getDB() {
+  if (!dbPromise) {
+    dbPromise = openDB().catch(error => {
+      dbPromise = null;
+      throw error;
+    });
+  }
+  return dbPromise;
+}
+
+// Додає або оновлює запис (put): без id створює новий, з наявним id оновлює
+async function addResult(item) {
+  const db = await getDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const request = tx.objectStore(STORE_NAME).put(item);
+    tx.oncomplete = () => resolve(request.result);
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error);
+  });
+}
+
+// Повертає всі записи сховища (транзакція readonly)
+async function getAllResults() {
+  const db = await getDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readonly');
+    const request = tx.objectStore(STORE_NAME).getAll();
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+// Видаляє запис за ключем id
+async function deleteResult(id) {
+  const db = await getDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    tx.objectStore(STORE_NAME).delete(id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error);
+  });
+}
+
+// Одноразова міграція: якщо store порожній, а в localStorage є збережені результати,
+// переносить їх в IndexedDB і ставить прапорець, щоб не дублювати при наступних запусках.
+// Старі дані в localStorage лишаються як резервна копія. Повертає кількість перенесених записів
+async function migrateFromLocalStorage() {
+  if (localStorage.getItem(LS_MIGRATED_KEY) === 'true') return 0;
+
+  const oldItems = loadFromLocalStorage();
+  if (oldItems.length === 0) return 0;
+
+  const existing = await getAllResults();
+  if (existing.length > 0) return 0;
+
+  for (const item of oldItems) {
+    await addResult(item);
+  }
+  localStorage.setItem(LS_MIGRATED_KEY, 'true');
+  return oldItems.length;
+}
+
+// Повертає всі збережені результати
+async function loadResults() {
+  if (STORAGE_MODE === 'localStorage') return loadFromLocalStorage();
+  return getAllResults();
+}
+
+// Зберігає новий результат (для localStorage id призначаємо самі: максимальний + 1)
+async function storeResult(item) {
+  if (STORAGE_MODE === 'localStorage') {
+    const items = loadFromLocalStorage();
+    const id = items.reduce((max, r) => Math.max(max, r.id), 0) + 1;
+    items.push({ ...item, id });
+    saveToLocalStorage(items);
+    return;
+  }
+  await addResult(item);
+}
+
+// Видаляє результат за id
+async function eraseResult(id) {
+  if (STORAGE_MODE === 'localStorage') {
+    saveToLocalStorage(loadFromLocalStorage().filter(r => r.id !== id));
+    return;
+  }
+  await deleteResult(id);
+}
+
+// Відсоток правильних відповідей одного збереженого результату
+const resultPercent = r => (r.total ? calcScorePercent(r.score, r.total) : 0);
+
+// Форматує ISO-дату у зрозумілий вигляд
+const formatDate = iso => new Date(iso).toLocaleString('uk-UA');
 
 // Адреса API (Open Trivia Database, без ключа)
 const API_URL = 'https://opentdb.com/api.php?amount=10&type=multiple';
@@ -124,7 +262,10 @@ Vue.createApp({
       // компонент створювався заново і не зберігав старий вибір
       round: 0,
       loading: false,
-      status: { message: '', type: '' }
+      status: { message: '', type: '' },
+      // збережені результати й повідомлення про помилку сховища
+      results: [],
+      storageError: ''
     };
   },
   computed: {
@@ -155,9 +296,19 @@ Vue.createApp({
     nextLabel() {
       if (this.isFinished) return 'Почати спочатку';
       return this.isLast ? 'Показати результат' : 'Наступне питання';
+    },
+    // 5 найкращих результатів. Масив з getAll сортується на клієнті:
+    // спочатку за відсотком (від більшого), при рівності новіші вище
+    bestResults() {
+      return [...this.results]
+        .sort((a, b) => resultPercent(b) - resultPercent(a) || new Date(b.date) - new Date(a.date))
+        .slice(0, 5);
     }
   },
   methods: {
+    resultPercent,
+    formatDate,
+
     // Обробник події answer від дочірнього компонента: перевіряє відповідь і оновлює бали
     onAnswer(selectedIndex) {
       if (this.isAnswered) return;
@@ -166,7 +317,7 @@ Vue.createApp({
       this.lastAnswerCorrect = correct;
       this.answeredIds.push(this.current.id);
     },
-    // Перехід до наступного питання; після останнього показує результат
+    // Перехід до наступного питання; після останнього показує результат і зберігає його
     nextQuestion() {
       if (this.isFinished) {
         this.restart();
@@ -175,6 +326,7 @@ Vue.createApp({
       if (this.isLast) {
         this.isFinished = true;
         console.log(`Результат: ${this.score} з ${this.questions.length} (${this.percent}%)`);
+        this.saveCurrentResult();
         return;
       }
       this.currentIndex++;
@@ -192,8 +344,53 @@ Vue.createApp({
     setStatus(message, type) {
       this.status = { message, type };
     },
+
+    // оновлює список результатів із сховища (після кожної CRUD-операції)
+    async refreshResults() {
+      this.results = await loadResults();
+    },
+    // початкове завантаження сховища. У режимі IndexedDB спершу виконується міграція.
+    // Якщо сховище недоступне, користувач бачить зрозуміле повідомлення
+    async initStorage() {
+      try {
+        if (STORAGE_MODE === 'indexedDB') {
+          const moved = await migrateFromLocalStorage();
+          if (moved > 0) {
+            console.log(`Міграція: перенесено ${moved} результатів з localStorage в IndexedDB`);
+          }
+        }
+        await this.refreshResults();
+      } catch (error) {
+        this.storageError = 'Не вдалося відкрити локальне сховище браузера. Можливо, воно вимкнене або увімкнено приватний режим. Результати не зберігатимуться між перезавантаженнями.';
+        console.error(error);
+      }
+    },
+    // зберігає результат щойно завершеної вікторини
+    async saveCurrentResult() {
+      try {
+        await storeResult({
+          date: new Date().toISOString(),
+          score: this.score,
+          total: this.questions.length
+        });
+        await this.refreshResults();
+      } catch (error) {
+        this.storageError = 'Не вдалося зберегти результат у локальному сховищі. Після перезавантаження він зникне.';
+        console.error(error);
+      }
+    },
+    // видаляє результат за id і перемальовує список
+    async onDelete(id) {
+      try {
+        await eraseResult(id);
+        await this.refreshResults();
+      } catch (error) {
+        this.storageError = 'Не вдалося видалити результат із локального сховища.';
+        console.error(error);
+      }
+    },
+
     // fetch -> перевірка response.ok -> JSON -> перетворення -> запис у реактивний стан.
-    // Помилки HTTP і мережі ловить catch, стан завантаження вимикається у finally
     async loadData() {
       this.loading = true;
       this.setStatus('Завантаження питань…', 'loading');
@@ -230,8 +427,9 @@ Vue.createApp({
       }
     }
   },
-  // Після створення застосунку одразу завантажуємо питання з API
+  // Після створення застосунку одразу відновлюємо результати зі сховища й завантажуємо питання
   mounted() {
+    this.initStorage();
     this.loadData();
   }
 }).mount('#app');
